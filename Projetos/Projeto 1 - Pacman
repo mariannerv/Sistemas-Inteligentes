@@ -1,0 +1,1080 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Sistemas Inteligentes 2021/2022\n",
+    "\n",
+    "## Mini-projeto 1: Pacman comilão\n",
+    "\n",
+    "<img src=\"pacman.png\" alt=\"Drawing\" style=\"width: 100px;\"/>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Grupo: 10\n",
+    "\n",
+    "### Elementos do Grupo\n",
+    "\n",
+    "Número: 59270   Nome: Tatiana Moura    \n",
+    "Número: 55945   Nome: Mariana Valente      \n",
+    "Número: 54356   Nome: Judite Ramos      \n",
+    "\n",
+    "(Nota: Neste relatório pode adicionar as células de texto e código que achar necessárias.)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Formulação do Problema"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "No PacmanPastilhas temos o problema onde o Pacman se movimenta num mapa para alcançar uma certa pontuação com as pastilhas comidas.\n",
+    "\n",
+    "#### Representação de estados: \n",
+    "\n",
+    "Temos a classe Pacman e a classe PacmanPastilhas. A classe Pacman corresponde ao estado do Pacman que tem valores dinamicos, onde a pontuação aumenta a cada vez que pastilhas são comidas e à medida que as pastilhas forem comidas elas vão diminuindo no estado do pacman, além disso é importante saber a quantidade das células visitadas para calcular o custo corretamente quando o Pacman se desloca.\n",
+    "A classe PacmanPastilhas corresponde aos valores que são mais em relação ao problema e do mapa, essa classe herda a classe Problem e Pacman. Temos os valores initial que corresponde à posição do pacman, o goal que corresponde ao objetivo de pontuação do pacman, o total de pastilhas e os obstáculos que correspondem ao mundo de pacman.\n",
+    "\n",
+    "- Estado PacmanPastilhas(posiçãoInicial, objetivo, total_pastilhas {\"N\":(x,y), \"D\": (x,y), \"C\": (x,y)}, obstaculos)\n",
+    "- Estado: Pacman((posição(x,y),pontuação, pastilhas não comidas {\"N\":(x,y), \"D\": (x,y), \"C\": (x,y)}, celulas_visitadas)\n",
+    "\n",
+    "No estado inicial o Pacman tem 0 pontos e todas as pastilhas não comidas do Problema PacmanPastilhas, com a lista de células visitadas vazia. No estado inicial de PacmanPastilhas temos a posição inicial de Pacman depois o objetivo de por exemplo 10 pontos, o total de pastilhas no mapa, e obstaculos\n",
+    "\n",
+    "- Estado Inicial: PacmanPastilhas((1,1), 10, {\"N\":(2,3), \"D\": (4,6), \"C\": (3,4)}, obstáculos)\n",
+    "- Estado Inicial: Pacman((1,1), 0, {\"N\":(2,3), \"D\": (4,6), \"C\": (3,4), [] })\n",
+    "\n",
+    "- Objetivo: A pontuação/estado de Pacman() deve atingir o objetivo/estado final de pontuação do problema PacmanPastilhas()\n",
+    "- Açôes: As ações correspondem as direções possíveis de pacman: Norte (0,-1), Oeste (-1,0), Este (1,0), Sul (0,1);"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Implementação do Mundo"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 73,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Classe do mundo\n",
+    "class Mapa:\n",
+    "    \n",
+    "    def __init__(self):\n",
+    "        self = self\n",
+    "\n",
+    "    def line(self, x, y, dx, dy, length):\n",
+    "        return {(x + i * dx, y + i * dy) for i in range(length)}\n",
+    "\n",
+    "    def quadro(self, x, y, lentgh):\n",
+    "        return self.line(x, y, 0, 1, lentgh) | self.line(x+lentgh-1, y, 0, 1, lentgh) | self.line(x, y, 1, 0, lentgh) | self.line(x, y+lentgh-1, 1, 0, lentgh)\n",
+    "    \n",
+    "#criaçao do mapa\n",
+    "dimensao = 10\n",
+    "m = Mapa() #dim do mapa\n",
+    "linha1 = m.line(2, 2, 1, 0, 5)\n",
+    "linha2 = m.line(2, 3, 0, 1, 5)\n",
+    "fronteira = m.quadro(0, 0, dimensao)    "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Implementação do Estado"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 74,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#Estado do pacman\n",
+    "from copy import deepcopy\n",
+    "class Pacman():\n",
+    "    def __init__(self, pos=(1,1), points=0, pastilhas={}, celulas_visitadas=[]):\n",
+    "        self.pos = pos\n",
+    "        self.points = points\n",
+    "        self.pastilhas = pastilhas\n",
+    "        self.celulas_visitadas = celulas_visitadas\n",
+    "        \n",
+    "    def __eq__(self, other):\n",
+    "        return self.pos == other.pos\n",
+    "\n",
+    "    def __hash__(self):\n",
+    "        return hash(self.pos)\n",
+    "\n",
+    "    def __repr__(self):\n",
+    "        return str(self.pos)\n",
+    "    \n",
+    "    def __lt__(self, other):\n",
+    "        return True"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Implementação do Problema"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 75,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from searchPlus import *\n",
+    "from collections import *\n",
+    "from utils import * \n",
+    "from copy import deepcopy\n",
+    "import timeit\n",
+    "\n",
+    "class PacmanPastilhas(Problem):\n",
+    "\n",
+    "    def __init__(self, initial=(1,1), goal=5, pastilhas = {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4)], \"C\": [(1,6), (4,7)]}, obstacles = linha1 | linha2 | fronteira , dim = dimensao):\n",
+    "        super().__init__(Pacman(initial, 0, pastilhas), goal)\n",
+    "        self.obstacles = obstacles\n",
+    "        self.dim = dim\n",
+    "\n",
+    "    directions = [(0, -1), (-1, 0), (1, 0), (0, +1)]  # North, West, East, South\n",
+    "    \n",
+    "    def actions(self, estado):\n",
+    "        pacman = estado.pos\n",
+    "        posicoes = []\n",
+    "        for d in self.directions:\n",
+    "            action = (pacman[0] + d[0] ,pacman[1] + d[1])\n",
+    "            if action not in self.obstacles:\n",
+    "                posicoes.append(d)\n",
+    "        return posicoes     \n",
+    "               \n",
+    "    def result(self, estado, accao):\n",
+    "        pacman = deepcopy(estado)\n",
+    "        x = pacman.pos[0]\n",
+    "        y= pacman.pos[1]\n",
+    "        dx = accao[0]\n",
+    "        dy = accao[1]\n",
+    "        pacman.pos = (x+dx,y+dy)\n",
+    "        t = len(pacman.celulas_visitadas)\n",
+    "        for i in pacman.pastilhas:  \n",
+    "            if i == \"C\": # Crescimento = t pontos\n",
+    "                if pacman.pos in pacman.pastilhas[i]:\n",
+    "                  pacman.points +=  t\n",
+    "                  pacman.pastilhas[i].remove(pacman.pos)\n",
+    "            elif i == \"N\": #Normal = 1 ponto\n",
+    "                if pacman.pos in pacman.pastilhas[i]: \n",
+    "                  pacman.points += 1\n",
+    "                  pacman.pastilhas[i].remove(pacman.pos)\n",
+    "            elif i == \"D\": # Desgaste = max(0,5-t) pontos;\n",
+    "                if pacman.pos in pacman.pastilhas[i]:\n",
+    "                  pacman.points += max(0, 5 - (t -1))\n",
+    "                  pacman.pastilhas[i].remove(pacman.pos)              \n",
+    "        pacman.celulas_visitadas.append(pacman.pos)    \n",
+    "        return pacman\n",
+    " \n",
+    "    def goal_test(self, estado):\n",
+    "        \"\"\"Testar se o pacman concluiu o objetivo\"\"\"\n",
+    "        return estado.points >= self.goal\n",
+    "    \n",
+    "    def path_cost(self, custo, estado1, action, estado2):\n",
+    "        \"\"\"Assume-se que accao é da forma 'ir de <estado1> para <estado2>' \n",
+    "        Quando pacman visita uma célula pela primeira vez o custo é de 1, \n",
+    "        mas quando a visita pela n-ésima vez o custo é de n.\"\"\"\n",
+    "        return custo + estado2.celulas_visitadas.count((estado1.pos[0]+action[0],estado1.pos[1] +action[1]))\n",
+    "    \n",
+    "    def exec_Actions(self, estado, accoes):\n",
+    "        \"\"\"Sequência de acções a partir de um estado\"\"\"\n",
+    "        custo = 0\n",
+    "        seq = 1\n",
+    "        for a in accoes:\n",
+    "            print(\"Sequencia:\", seq)\n",
+    "            seg = self.result(estado,a)\n",
+    "            custo = self.path_cost(custo,estado,a,seg)\n",
+    "            estado = seg\n",
+    "            p.display_Mapa(estado)\n",
+    "            print(f'Custo: {custo} | Points: {estado.points} | Goal? {self.goal_test(estado)}\\n')\n",
+    "            seq+=1\n",
+    "        return (estado,custo)\n",
+    "    \n",
+    "    def display_Mapa(self, state):\n",
+    "        output = \"\"\n",
+    "        pacman = state.pos\n",
+    "        pastilhas = state.pastilhas\n",
+    "        for j in range (0, self.dim):\n",
+    "            for i in range(0, self.dim):\n",
+    "                for p in pastilhas:\n",
+    "                    if (i,j) in pastilhas[p]:\n",
+    "                        ch = p\n",
+    "                if pacman == (i,j):\n",
+    "                    ch = '@'\n",
+    "                elif (i,j) in self.obstacles:\n",
+    "                    ch = \"=\"\n",
+    "                elif ch == \"\":\n",
+    "                    ch = \".\"\n",
+    "                output += ch + \" \"\n",
+    "                ch = \"\"\n",
+    "            output += \"\\n\"\n",
+    "        print(output)\n",
+    "        \n",
+    "    def display_trace(self, plan):\n",
+    "        path = set()\n",
+    "        st = self.initial\n",
+    "        pacInit = st.pos\n",
+    "        for a in plan.solution()[:-1]:\n",
+    "            st = self.result(st,a)\n",
+    "            path.add(st.pos)\n",
+    "        output = \"\"\n",
+    "        pacman = plan.state.pos\n",
+    "        pastilhas = plan.state.pastilhas\n",
+    "        for j in range(self.dim):\n",
+    "            for i in range(self.dim):\n",
+    "                for p in pastilhas:\n",
+    "                    if (i,j) in pastilhas[p]:\n",
+    "                        ch = p\n",
+    "                if pacman == (i,j) or pacInit == (i,j):\n",
+    "                    ch = '@'\n",
+    "                elif (i,j) in self.obstacles:\n",
+    "                    ch = \"=\"\n",
+    "                elif (i,j) in path:\n",
+    "                    ch = \"@\"\n",
+    "                elif ch == \"\":\n",
+    "                    ch = \".\"\n",
+    "                output += ch + \" \"\n",
+    "                ch = \"\"\n",
+    "            output += \"\\n\"\n",
+    "        print(output)    \n",
+    "        "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Criação de estados e do problema\n",
+    "\n",
+    "(Mostrem que o código está a funcionar, construindo instâncias da classe **PacmanPastilhas**, fazendo display dos estados, verificando o teste do estado final, gerando as ações para alguns estados, executando ações a partir de alguns estados e gerando novos estados e mostrando a evolução dos custos; verificando que os estados não se modificam com as ações (são gerados novos estados) e que a igualdade e a comparação entre estados funciona. Mostrem que a execução de sequências de ações está a funcionar bem.)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 86,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Estado inicial: (3, 6) | Objetivo: 10 pontos\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = @ . D . . . = \n",
+      "= . = . C N . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Sequencia: 1\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . @ D . . . = \n",
+      "= . = . C N . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 1 | Points: 0 | Goal? False\n",
+      "\n",
+      "Sequencia: 2\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . @ . . . = \n",
+      "= . = . C N . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 2 | Points: 5 | Goal? False\n",
+      "\n",
+      "Sequencia: 3\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . . @ . . = \n",
+      "= . = . C N . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 3 | Points: 5 | Goal? False\n",
+      "\n",
+      "Sequencia: 4\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . . . . . = \n",
+      "= . = . C N @ . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 4 | Points: 5 | Goal? False\n",
+      "\n",
+      "Sequencia: 5\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . . . . . = \n",
+      "= . = . C @ . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 5 | Points: 6 | Goal? False\n",
+      "\n",
+      "Sequencia: 6\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . . . . . = \n",
+      "= . = . @ . . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 6 | Points: 11 | Goal? True\n",
+      "\n",
+      "Sequencia: 7\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . . . . . = \n",
+      "= . = . . @ . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 8 | Points: 11 | Goal? True\n",
+      "\n",
+      "Sequencia: 8\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . . . . . = \n",
+      "= . = . @ . . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 10 | Points: 11 | Goal? True\n",
+      "\n",
+      "Sequencia: 9\n",
+      "= = = = = = = = = = \n",
+      "= . . . . N . . . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . . . . . = \n",
+      "= . = . . @ . . . = \n",
+      "= . . . . . . D . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Custo: 13 | Points: 11 | Goal? True\n",
+      "\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "((5, 7), 13)"
+      ]
+     },
+     "execution_count": 86,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "#criaçao do Pacman\n",
+    "pacman = Pacman()\n",
+    "#print(pacman)\n",
+    "\n",
+    "#instancia do problema PacmanPAstilhas\n",
+    "p = PacmanPastilhas((3, 6), 10 , {\"N\":[(5,7),(5,1)],\"D\":[(5,6), (7,8)],\"C\":[(1,6),(4,7)]}, fronteira | linha1 | linha2 ,dimensao)\n",
+    "\n",
+    "#execucoes\n",
+    "print(f'Estado inicial: {p.initial} | Objetivo: {p.goal} pontos')\n",
+    "p.display_Mapa(p.initial)\n",
+    "p.exec_Actions(p.initial, [(1,0),(1,0),(1,0),(0,1),(-1,0),(-1,0),(1,0),(-1,0),(1,0)])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Teste de procura de solução\n",
+    "\n",
+    "(utilização de algoritmos de procura aprendidos nas aulas e comparação dos resultados ao nível de tempo de execução e solução obtida; comente aqui os resultados obtidos e o que observa)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Profundidade Primeiro em Arvore - Depth first tree search"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 50,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n"
+     ]
+    },
+    {
+     "ename": "KeyboardInterrupt",
+     "evalue": "",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[1;31m---------------------------------------------------------------------------\u001b[0m",
+      "\u001b[1;31mKeyboardInterrupt\u001b[0m                         Traceback (most recent call last)",
+      "\u001b[1;32m<ipython-input-50-560df64f66ef>\u001b[0m in \u001b[0;36m<module>\u001b[1;34m\u001b[0m\n\u001b[0;32m      2\u001b[0m \u001b[0mp2\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mdisplay_Mapa\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mp2\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0minitial\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m      3\u001b[0m \u001b[0mstart\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mtimeit\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mdefault_timer\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m----> 4\u001b[1;33m \u001b[0mresultado\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mdepth_first_tree_search\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mp2\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m      5\u001b[0m \u001b[0mprint\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;34m\"Solução Profundidade-primeiro em árvore com custo\"\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mstr\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mresultado\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mpath_cost\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m+\u001b[0m\u001b[1;34m\":\"\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m      6\u001b[0m \u001b[0mprint\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mresultado\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0msolution\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32m~\\Desktop\\Projetos\\P1\\searchPlus.py\u001b[0m in \u001b[0;36mdepth_first_tree_search\u001b[1;34m(problem)\u001b[0m\n\u001b[0;32m    216\u001b[0m \u001b[1;32mdef\u001b[0m \u001b[0mdepth_first_tree_search\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mproblem\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    217\u001b[0m     \u001b[1;34m\"\"\"Search the deepest nodes in the search tree first.\"\"\"\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 218\u001b[1;33m     \u001b[1;32mreturn\u001b[0m \u001b[0mtree_search\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mproblem\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mStack\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    219\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    220\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32m~\\Desktop\\Projetos\\P1\\searchPlus.py\u001b[0m in \u001b[0;36mtree_search\u001b[1;34m(problem, frontier)\u001b[0m\n\u001b[0;32m    188\u001b[0m         \u001b[1;32mif\u001b[0m \u001b[0mproblem\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mgoal_test\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mnode\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mstate\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    189\u001b[0m             \u001b[1;32mreturn\u001b[0m \u001b[0mnode\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 190\u001b[1;33m         \u001b[0mfrontier\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mextend\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mnode\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mexpand\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mproblem\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    191\u001b[0m     \u001b[1;32mreturn\u001b[0m \u001b[1;32mNone\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    192\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32m~\\Desktop\\Projetos\\P1\\searchPlus.py\u001b[0m in \u001b[0;36mexpand\u001b[1;34m(self, problem)\u001b[0m\n\u001b[0;32m    104\u001b[0m     \u001b[1;32mdef\u001b[0m \u001b[0mexpand\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mself\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mproblem\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    105\u001b[0m         \u001b[1;34m\"\"\"List the nodes reachable in one step from this node.\"\"\"\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 106\u001b[1;33m         return [self.child_node(problem, action)\n\u001b[0m\u001b[0;32m    107\u001b[0m                 for action in problem.actions(self.state)]\n\u001b[0;32m    108\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32m~\\Desktop\\Projetos\\P1\\searchPlus.py\u001b[0m in \u001b[0;36m<listcomp>\u001b[1;34m(.0)\u001b[0m\n\u001b[0;32m    104\u001b[0m     \u001b[1;32mdef\u001b[0m \u001b[0mexpand\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mself\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mproblem\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    105\u001b[0m         \u001b[1;34m\"\"\"List the nodes reachable in one step from this node.\"\"\"\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 106\u001b[1;33m         return [self.child_node(problem, action)\n\u001b[0m\u001b[0;32m    107\u001b[0m                 for action in problem.actions(self.state)]\n\u001b[0;32m    108\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32m~\\Desktop\\Projetos\\P1\\searchPlus.py\u001b[0m in \u001b[0;36mchild_node\u001b[1;34m(self, problem, action)\u001b[0m\n\u001b[0;32m    109\u001b[0m     \u001b[1;32mdef\u001b[0m \u001b[0mchild_node\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mself\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mproblem\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0maction\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    110\u001b[0m         \u001b[1;34m\"\"\"[Figure 3.10]\"\"\"\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 111\u001b[1;33m         \u001b[0mnext\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mproblem\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mresult\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mself\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mstate\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0maction\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    112\u001b[0m         return Node(next, self, action,\n\u001b[0;32m    113\u001b[0m                     problem.path_cost(self.path_cost, self.state,\n",
+      "\u001b[1;32m<ipython-input-49-aa94c5a59f37>\u001b[0m in \u001b[0;36mresult\u001b[1;34m(self, estado, accao)\u001b[0m\n\u001b[0;32m     25\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m     26\u001b[0m     \u001b[1;32mdef\u001b[0m \u001b[0mresult\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mself\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mestado\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0maccao\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m---> 27\u001b[1;33m         \u001b[0mpacman\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mdeepcopy\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mestado\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m     28\u001b[0m         \u001b[0mx\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mpacman\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mpos\u001b[0m\u001b[1;33m[\u001b[0m\u001b[1;36m0\u001b[0m\u001b[1;33m]\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m     29\u001b[0m         \u001b[0my\u001b[0m\u001b[1;33m=\u001b[0m \u001b[0mpacman\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mpos\u001b[0m\u001b[1;33m[\u001b[0m\u001b[1;36m1\u001b[0m\u001b[1;33m]\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36mdeepcopy\u001b[1;34m(x, memo, _nil)\u001b[0m\n\u001b[0;32m    170\u001b[0m                     \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mx\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    171\u001b[0m                 \u001b[1;32melse\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 172\u001b[1;33m                     \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0m_reconstruct\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m,\u001b[0m \u001b[1;33m*\u001b[0m\u001b[0mrv\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    173\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    174\u001b[0m     \u001b[1;31m# If is its own copy, don't memoize.\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36m_reconstruct\u001b[1;34m(x, memo, func, args, state, listiter, dictiter, deepcopy)\u001b[0m\n\u001b[0;32m    268\u001b[0m     \u001b[1;32mif\u001b[0m \u001b[0mstate\u001b[0m \u001b[1;32mis\u001b[0m \u001b[1;32mnot\u001b[0m \u001b[1;32mNone\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    269\u001b[0m         \u001b[1;32mif\u001b[0m \u001b[0mdeep\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 270\u001b[1;33m             \u001b[0mstate\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mdeepcopy\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mstate\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    271\u001b[0m         \u001b[1;32mif\u001b[0m \u001b[0mhasattr\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0my\u001b[0m\u001b[1;33m,\u001b[0m \u001b[1;34m'__setstate__'\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    272\u001b[0m             \u001b[0my\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0m__setstate__\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mstate\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36mdeepcopy\u001b[1;34m(x, memo, _nil)\u001b[0m\n\u001b[0;32m    144\u001b[0m     \u001b[0mcopier\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0m_deepcopy_dispatch\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mget\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mcls\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    145\u001b[0m     \u001b[1;32mif\u001b[0m \u001b[0mcopier\u001b[0m \u001b[1;32mis\u001b[0m \u001b[1;32mnot\u001b[0m \u001b[1;32mNone\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 146\u001b[1;33m         \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mcopier\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    147\u001b[0m     \u001b[1;32melse\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    148\u001b[0m         \u001b[1;32mif\u001b[0m \u001b[0missubclass\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mcls\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mtype\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36m_deepcopy_dict\u001b[1;34m(x, memo, deepcopy)\u001b[0m\n\u001b[0;32m    228\u001b[0m     \u001b[0mmemo\u001b[0m\u001b[1;33m[\u001b[0m\u001b[0mid\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m]\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0my\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    229\u001b[0m     \u001b[1;32mfor\u001b[0m \u001b[0mkey\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mvalue\u001b[0m \u001b[1;32min\u001b[0m \u001b[0mx\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mitems\u001b[0m\u001b[1;33m(\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 230\u001b[1;33m         \u001b[0my\u001b[0m\u001b[1;33m[\u001b[0m\u001b[0mdeepcopy\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mkey\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m]\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mdeepcopy\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mvalue\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    231\u001b[0m     \u001b[1;32mreturn\u001b[0m \u001b[0my\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    232\u001b[0m \u001b[0md\u001b[0m\u001b[1;33m[\u001b[0m\u001b[0mdict\u001b[0m\u001b[1;33m]\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0m_deepcopy_dict\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36mdeepcopy\u001b[1;34m(x, memo, _nil)\u001b[0m\n\u001b[0;32m    144\u001b[0m     \u001b[0mcopier\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0m_deepcopy_dispatch\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mget\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mcls\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    145\u001b[0m     \u001b[1;32mif\u001b[0m \u001b[0mcopier\u001b[0m \u001b[1;32mis\u001b[0m \u001b[1;32mnot\u001b[0m \u001b[1;32mNone\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 146\u001b[1;33m         \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mcopier\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    147\u001b[0m     \u001b[1;32melse\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    148\u001b[0m         \u001b[1;32mif\u001b[0m \u001b[0missubclass\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mcls\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mtype\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36m_deepcopy_list\u001b[1;34m(x, memo, deepcopy)\u001b[0m\n\u001b[0;32m    203\u001b[0m     \u001b[0mappend\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0my\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mappend\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    204\u001b[0m     \u001b[1;32mfor\u001b[0m \u001b[0ma\u001b[0m \u001b[1;32min\u001b[0m \u001b[0mx\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 205\u001b[1;33m         \u001b[0mappend\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mdeepcopy\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0ma\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    206\u001b[0m     \u001b[1;32mreturn\u001b[0m \u001b[0my\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    207\u001b[0m \u001b[0md\u001b[0m\u001b[1;33m[\u001b[0m\u001b[0mlist\u001b[0m\u001b[1;33m]\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0m_deepcopy_list\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36mdeepcopy\u001b[1;34m(x, memo, _nil)\u001b[0m\n\u001b[0;32m    144\u001b[0m     \u001b[0mcopier\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0m_deepcopy_dispatch\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mget\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mcls\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    145\u001b[0m     \u001b[1;32mif\u001b[0m \u001b[0mcopier\u001b[0m \u001b[1;32mis\u001b[0m \u001b[1;32mnot\u001b[0m \u001b[1;32mNone\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 146\u001b[1;33m         \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mcopier\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    147\u001b[0m     \u001b[1;32melse\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    148\u001b[0m         \u001b[1;32mif\u001b[0m \u001b[0missubclass\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mcls\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mtype\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36m_deepcopy_tuple\u001b[1;34m(x, memo, deepcopy)\u001b[0m\n\u001b[0;32m    208\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    209\u001b[0m \u001b[1;32mdef\u001b[0m \u001b[0m_deepcopy_tuple\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mdeepcopy\u001b[0m\u001b[1;33m=\u001b[0m\u001b[0mdeepcopy\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 210\u001b[1;33m     \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[1;33m[\u001b[0m\u001b[0mdeepcopy\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0ma\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m \u001b[1;32mfor\u001b[0m \u001b[0ma\u001b[0m \u001b[1;32min\u001b[0m \u001b[0mx\u001b[0m\u001b[1;33m]\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    211\u001b[0m     \u001b[1;31m# We're not going to put the tuple in the memo, but it's still important we\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    212\u001b[0m     \u001b[1;31m# check for it, in case the tuple contains recursive mutable structures.\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36m<listcomp>\u001b[1;34m(.0)\u001b[0m\n\u001b[0;32m    208\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    209\u001b[0m \u001b[1;32mdef\u001b[0m \u001b[0m_deepcopy_tuple\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mdeepcopy\u001b[0m\u001b[1;33m=\u001b[0m\u001b[0mdeepcopy\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 210\u001b[1;33m     \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[1;33m[\u001b[0m\u001b[0mdeepcopy\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0ma\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m)\u001b[0m \u001b[1;32mfor\u001b[0m \u001b[0ma\u001b[0m \u001b[1;32min\u001b[0m \u001b[0mx\u001b[0m\u001b[1;33m]\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    211\u001b[0m     \u001b[1;31m# We're not going to put the tuple in the memo, but it's still important we\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    212\u001b[0m     \u001b[1;31m# check for it, in case the tuple contains recursive mutable structures.\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;32mC:\\ProgramData\\Anaconda3\\lib\\copy.py\u001b[0m in \u001b[0;36mdeepcopy\u001b[1;34m(x, memo, _nil)\u001b[0m\n\u001b[0;32m    136\u001b[0m \u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    137\u001b[0m     \u001b[0md\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mid\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0mx\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[1;32m--> 138\u001b[1;33m     \u001b[0my\u001b[0m \u001b[1;33m=\u001b[0m \u001b[0mmemo\u001b[0m\u001b[1;33m.\u001b[0m\u001b[0mget\u001b[0m\u001b[1;33m(\u001b[0m\u001b[0md\u001b[0m\u001b[1;33m,\u001b[0m \u001b[0m_nil\u001b[0m\u001b[1;33m)\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0m\u001b[0;32m    139\u001b[0m     \u001b[1;32mif\u001b[0m \u001b[0my\u001b[0m \u001b[1;32mis\u001b[0m \u001b[1;32mnot\u001b[0m \u001b[0m_nil\u001b[0m\u001b[1;33m:\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n\u001b[0;32m    140\u001b[0m         \u001b[1;32mreturn\u001b[0m \u001b[0my\u001b[0m\u001b[1;33m\u001b[0m\u001b[1;33m\u001b[0m\u001b[0m\n",
+      "\u001b[1;31mKeyboardInterrupt\u001b[0m: "
+     ]
+    }
+   ],
+   "source": [
+    "p2 = PacmanPastilhas((1,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p2.display_Mapa(p2.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = depth_first_tree_search(p2)\n",
+    "print(\"Solução Profundidade-primeiro em árvore com custo\", str(resultado.path_cost)+\":\")\n",
+    "print(resultado.solution())\n",
+    "stop = timeit.default_timer()\n",
+    "Arvore_Profundiade_Primeiro_tempo = stop - start\n",
+    "print(resultado)\n",
+    "p2.display_trace(resultado)\n",
+    "print('Tempo: ', Arvore_Profundiade_Primeiro_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "O algoritmo de profundidade primeiro em árvore não retornou nenhum resultado, uma vez que entrou em 'loop'. Esta é uma das maiores adversidades deste algoritmo, uma vez que explora sempre os nós descendentes, mesmo que já tenham sido visitados anteriormente."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Profundidade primeiro em Grafo - Depth First Graph Search"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 87,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Solução Profundidade-primeiro em grafo com custo 19:\n",
+      "[(0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (1, 0), (0, -1), (0, -1), (-1, 0), (-1, 0), (-1, 0)]\n",
+      "<Node (5, 6)>\n",
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= @ = = = = = . . = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . . . . D = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . @ @ @ @ = \n",
+      "= @ = . C . . . @ = \n",
+      "= @ @ @ @ @ @ @ @ = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Tempo:  0.003949899999952322\n"
+     ]
+    }
+   ],
+   "source": [
+    "p2 = PacmanPastilhas((1,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p2.display_Mapa(p2.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = depth_first_graph_search(p2)\n",
+    "print(\"Solução Profundidade-primeiro em grafo com custo\", str(resultado.path_cost)+\":\")\n",
+    "print(resultado.solution())\n",
+    "stop = timeit.default_timer()\n",
+    "Grafo_Profundiade_Primeiro_tempo = stop - start\n",
+    "print(resultado)\n",
+    "p2.display_trace(resultado)\n",
+    "print('Tempo: ', Grafo_Profundiade_Primeiro_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "O algoritmo de profundidade primeiro em grafo, apesar de não gerar o resultado ótimo, porque não tem em conta o custo, é mais eficaz que o algoritmo de profundidade primeiro em árvore, já que não expande nós que tenham sido visitados anteriormente, evitando assim entrar em 'loops'. É no entanto ainda pouco útil em problemas de grande dimensão, uma vez que explora toda a profundidade."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Largura Primeiro em Arvore - Breadth first tree search"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 88,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Solução Largura Primeiro em árvore com custo 7:\n",
+      "[(1, 0), (-1, 0), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)]\n",
+      "<Node (1, 6)>\n",
+      "= = = = = = = = = = \n",
+      "= @ @ . . N . D . = \n",
+      "= @ = = = = = . . = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . . . . D = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Tempo:  0.02568810000002486\n"
+     ]
+    }
+   ],
+   "source": [
+    "p2 = PacmanPastilhas((1,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p2.display_Mapa(p2.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = breadth_first_tree_search(p2)\n",
+    "print(\"Solução Largura Primeiro em árvore com custo\", str(resultado.path_cost)+\":\")\n",
+    "print(resultado.solution())\n",
+    "stop = timeit.default_timer()\n",
+    "Arvore_Largura_Primeiro_tempo = stop - start\n",
+    "print(resultado)\n",
+    "p2.display_trace(resultado)\n",
+    "print('Tempo: ', Arvore_Largura_Primeiro_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "O algoritmo largura primeiro em árvore expande primeiro todos os nós que estejam à mesma profundidade, não tendo em conta se o estado já foi visitado anteriormente. Por essa razão, tem uma complexidade temporal e espacial elevadas, não gerando o resultado ótimo. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Largura Primeiro em Grafo - Breadth first graph search"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 89,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#como nao temos essa funcao disponivel no searchPlus.py ei-la aqui\n",
+    "def breadth_first_graph_search(problem):\n",
+    "    \"\"\"Search the deepest nodes in the search tree first.\"\"\"\n",
+    "    return graph_search(problem, FIFOQueue())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 90,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Solução Largura-primeiro em grafo com custo 11:\n",
+      "[(0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (0, -1), (1, 0)]\n",
+      "resultado: <class 'searchPlus.Node'>\n",
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= @ = = = = = . . = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . . . . D = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . N . . . = \n",
+      "= @ = @ @ . . . . = \n",
+      "= @ @ @ . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Tempo:  0.005855800000063027\n"
+     ]
+    }
+   ],
+   "source": [
+    "p2 = PacmanPastilhas((1,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p2.display_Mapa(p2.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = breadth_first_graph_search(p2)\n",
+    "print(\"Solução Largura-primeiro em grafo com custo\", str(resultado.path_cost)+\":\")\n",
+    "print(resultado.solution())\n",
+    "stop = timeit.default_timer()\n",
+    "Grafo_Largura_Primeiro_tempo = stop - start\n",
+    "print('resultado:',type(resultado))\n",
+    "p2.display_trace(resultado)\n",
+    "print('Tempo: ', Grafo_Largura_Primeiro_tempo)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 91,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= . . @ . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Solução Largura-primeiro em grafo com custo 7:\n",
+      "[(-1, 0), (-1, 0), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)]\n",
+      "resultado: <class 'searchPlus.Node'>\n",
+      "= = = = = = = = = = \n",
+      "= @ @ @ . N . D . = \n",
+      "= @ = = = = = . . = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . . . . D = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Tempo:  0.0035791999998764368\n"
+     ]
+    }
+   ],
+   "source": [
+    "p3 = PacmanPastilhas((3,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p3.display_Mapa(p3.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = breadth_first_graph_search(p3)\n",
+    "\n",
+    "if resultado != 'cutoff':\n",
+    "    print(\"Solução Largura-primeiro em grafo com custo\", str(resultado.path_cost)+\":\")\n",
+    "    print(resultado.solution())\n",
+    "    stop = timeit.default_timer()\n",
+    "    Grafo_Largura_Primeiro_tempo = stop - start\n",
+    "    print('resultado:',type(resultado))\n",
+    "    p3.display_trace(resultado)\n",
+    "    print('Tempo: ', Grafo_Largura_Primeiro_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Comparando com o mesmo algoritmo (largura primeiro) em árvore, este algoritmo é um pouco mais eficaz, uma vez que não expande nós expandidos anteriormente. É ainda bastante complexo e não tem em conta os custos, pelo que não é ótimo."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Profundidade Limitada em Arvore - Depth limited search"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 92,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Solução Profundidade Limitada em árvore com custo 11\n",
+      "[(1, 0), (-1, 0), (1, 0), (-1, 0), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)]\n",
+      "<Node (1, 6)>\n",
+      "= = = = = = = = = = \n",
+      "= @ @ . . N . D . = \n",
+      "= @ = = = = = . . = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . . . . D = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Tempo:  0.009400099999766098\n"
+     ]
+    }
+   ],
+   "source": [
+    "p2 = PacmanPastilhas((1,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p2.display_Mapa(p2.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = depth_limited_search(p2, 10) #limite = 10\n",
+    "\n",
+    "if resultado != 'cutoff':\n",
+    "    print(\"Solução Profundidade Limitada em árvore com custo\", resultado.path_cost)\n",
+    "    print(resultado.solution())\n",
+    "    stop = timeit.default_timer()\n",
+    "    Arvore_Profunidade_Limitada_tempo = stop - start\n",
+    "    print(resultado)\n",
+    "    p2.display_trace(resultado)\n",
+    "    print('Tempo: ', Arvore_Profunidade_Limitada_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Este algoritmo é semelhante ao profundidade primeiro em árvore, com a diferença que pára num certo nível de profundidade. Por essa razão, é uma versão um pouco menos complexa temporal e espacialmente, uma vez que não entra em 'loop'. Tal como o algoritmo de profundidade primeiro em árvore, não chega a um resultado ótimo."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Custo Uniforme em Grafo - Uniform cost search"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 93,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Solução custo Uniforme em grafo com custo 11:\n",
+      "[(0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1), (1, 0), (1, 0), (1, 0), (0, -1)]\n",
+      "<Node (4, 7)>\n",
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= @ = = = = = . . = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . . . . D = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . N . . . = \n",
+      "= @ = . @ . . . . = \n",
+      "= @ @ @ @ D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Tempo:  0.021347400000195194\n"
+     ]
+    }
+   ],
+   "source": [
+    "p2 = PacmanPastilhas((1,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p2.display_Mapa(p2.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = uniform_cost_search(p2)\n",
+    "print(\"Solução custo Uniforme em grafo com custo\", str(resultado.path_cost)+\":\")\n",
+    "print(resultado.solution())\n",
+    "stop = timeit.default_timer()\n",
+    "Grafo_custo_Uniforme_tempo = stop - start\n",
+    "print(resultado)\n",
+    "p2.display_trace(resultado)\n",
+    "print('Tempo: ', Grafo_custo_Uniforme_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "O algoritmo do custo uniforme em grafo obtém a solução ótima, uma vez que leva em conta o custo das ações. Assim, não explora a árvore em profundidade nem em largura, mas sim seguindo o nó que garante o menor custo possível. Por esta razão, é complexo tanto a nível temporal como espacial, uma vez que tem de expandir todos os nós da fronteira, avaliar o seu custo e comparar com o nó de menor custo encontrado anteriormente. No caso de o nó encontrado anteriormente ter menor custo, continua a expansão para os seus estados sucessores. Caso contrário, substitui o nó por um novo de menor custo, prosseguindo a expansão até ecnontrar a solução ótima. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Aprofundamento progressivo em Arvore"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 94,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "= = = = = = = = = = \n",
+      "= @ . . . N . D . = \n",
+      "= . = = = = = . . = \n",
+      "= . = . . . . . . = \n",
+      "= . = . . . . . D = \n",
+      "= . = . . . . . . = \n",
+      "= C = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Solução Profundidade Limitada em árvore com custo 7:\n",
+      "[(1, 0), (-1, 0), (0, 1), (0, 1), (0, 1), (0, 1), (0, 1)]\n",
+      "<Node (1, 6)>\n",
+      "= = = = = = = = = = \n",
+      "= @ @ . . N . D . = \n",
+      "= @ = = = = = . . = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . . . . D = \n",
+      "= @ = . . . . . . = \n",
+      "= @ = . . N . . . = \n",
+      "= . = . C . . . . = \n",
+      "= . . . . D . . . = \n",
+      "= = = = = = = = = = \n",
+      "\n",
+      "Tempo:  0.019496200000048702\n"
+     ]
+    }
+   ],
+   "source": [
+    "p2 = PacmanPastilhas((1,1), 5, {\"N\":[(5,6), (5,1)] , \"D\":[(5,8), (8,4), (7,1)], \"C\": [(1,6), (4,7)]}, linha1 | linha2 | fronteira, 10)\n",
+    "p2.display_Mapa(p2.initial)\n",
+    "start = timeit.default_timer()\n",
+    "resultado = iterative_deepening_search(p2) \n",
+    "print(\"Solução Profundidade Limitada em árvore com custo\", str(resultado.path_cost)+\":\")\n",
+    "print(resultado.solution())\n",
+    "stop = timeit.default_timer()\n",
+    "Arvore_Aprofundamento_Progressivo_tempo = stop - start\n",
+    "print(resultado)\n",
+    "p2.display_trace(resultado)\n",
+    "print('Tempo: ', Arvore_Aprofundamento_Progressivo_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "É um algoritmo semelhante ao da profundidade limitada, sendo a única diferença o facto de o limite ir aumentando gradualmente, até chegar a um resultado. Por essa razão, é menos complexo que o algoritmo da profundidade primeiro, uma vez que não vai necessariamente explorar toda a profundidade da árvore. Não obtém um resultado ótimo. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Comparação de tempo dos algoritmos"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 95,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Grafo Profundiade Primeiro        - Tempo:  0.003949899999952322\n",
+      "Arvore Largura Primeiro           - Tempo:  0.02568810000002486\n",
+      "Grafo Largura Primeiro            - Tempo:  0.0035791999998764368\n",
+      "Arvore Profundiade Limitada       - Tempo:  0.009400099999766098\n",
+      "Grafo Custo Uniforme              - Tempo:  0.021347400000195194\n",
+      "Arvore Aprofundamento Progressivo - Tempo:  0.019496200000048702\n"
+     ]
+    }
+   ],
+   "source": [
+    "#print('Arvore Profundiade Primeiro       - Tempo: ', Arvore_Profundiade_Primeiro_tempo)\n",
+    "print('Grafo Profundiade Primeiro        - Tempo: ', Grafo_Profundiade_Primeiro_tempo)\n",
+    "print('Arvore Largura Primeiro           - Tempo: ', Arvore_Largura_Primeiro_tempo)\n",
+    "print('Grafo Largura Primeiro            - Tempo: ', Grafo_Largura_Primeiro_tempo)\n",
+    "print('Arvore Profundiade Limitada       - Tempo: ', Arvore_Profunidade_Limitada_tempo)\n",
+    "print('Grafo Custo Uniforme              - Tempo: ', Grafo_custo_Uniforme_tempo)\n",
+    "print('Arvore Aprofundamento Progressivo - Tempo: ', Arvore_Aprofundamento_Progressivo_tempo)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Como se pode observar, de entre os 6 algoritmos comparados (o algoritmo da profundidade primeiro, em árvore, não obteve solução, uma vez que entrou em 'loop'), o que obteve a solução em menor tempo foi o algoritmo da profundidade primeiro em grafo. Este resultado não significa que este algoritmo seja o melhor, apenas que a solução para o mapa utilizado se encontra a uma profundidade relativamente baixa. \n",
+    "\n",
+    "Comparando o tempo deste algoritmo com o algoritmo do custo uniforme em grafo, pode concluir-se que os tempos diferem pouco. Tendo em conta que o algoritmo do custo uniforme obtém a solução ótima, podemos inferir que este segundo algoritmo é realmente mais potente que o algoritmo da profundidade primeiro em grafo, uma vez que demorou pouco mais tempo para chegar à solução ótima. \n",
+    "\n",
+    "Por outro lado, comparando os algoritmos semelhantes, em que a única diferença é o facto de serem aplicados em árvore ou em grafo, em todos se obteve menor tempo de conclusão para os algoritmos em grafo, confirmando a maior eficácia dos algortimos em grafo, que não visitam estados ja visitados. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.8.5"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
